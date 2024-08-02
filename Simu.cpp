@@ -17,6 +17,7 @@ Maze::Maze(const char* fileName)
 
         while (getline(myfile, line))
         {
+            std::cout << line << std::endl;
             curCol = line.size();
             if (preCol == 0)
             {

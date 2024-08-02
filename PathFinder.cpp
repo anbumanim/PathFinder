@@ -1,29 +1,57 @@
-// PathFinder.cpp : This file contains the 'main' function. Program execution begins and ends there.
+﻿// PathFinder.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
 #include <iostream>
 #include "path.h"
 #include "Simu.h"
+#include <Windows.h>
+
+#define BLACK_SQUARE 254
+enum ARROW_SYMBOLS
+{
+    LEFT_ARROW_SYM = 17,
+    RIGHT_ARROW_SYM = 16,
+    UP_ARROW_SYM = 30,
+    DOWN_ARROW_SYM = 31,
+};
 
 WayOrWall moveOneStep(Step srtStep, Maze& maze, std::vector<Direction>& dirs);
 void exploreRoute(Step step, Maze& m, Route routeCur, std::vector<Route>& routes);
 
 void findAllRoutes();
 
+static void gotoxy(int x, int y)
+{
+    COORD coord;
+    coord.X = x;
+    coord.Y = y;
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
+}
+
+static void ShowConsoleCursor(bool showFlag)
+{
+    HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    CONSOLE_CURSOR_INFO     cursorInfo;
+
+    GetConsoleCursorInfo(out, &cursorInfo);
+    cursorInfo.bVisible = showFlag; // set the cursor visibility
+    SetConsoleCursorInfo(out, &cursorInfo);
+}
 
 
 int main()
 {
-    std::cout << "Path finder!\n";
+    //std::cout << "Path finder!\n";
     Point p;
-    p.print();
+    //p.print();
 
     Step s1(Point(1,1), Direction::EAST);
     Step s2(Point(2,2), Direction::WEST);
     Step s3(Point(3,3), Direction::NORTH);
     Step s4(Point(4,4), Direction::SOUTH);
     Step s5(Point(5,5), Direction::EAST);
-    std::cout << std::endl;
+    //std::cout << std::endl;
 
     Path path;
     path.addStep(s1);
@@ -31,8 +59,8 @@ int main()
     path.addStep(s3);
     path.addStep(s4);
     path.addStep(s5);
-    path.print();
-    std::cout << std::endl;
+    //path.print();
+    //std::cout << std::endl;
 
     Junction j{Point(7,8), Direction::EAST};
     j.Add(path);
@@ -40,16 +68,16 @@ int main()
     j.Add(path);
     path.setType(PathType::CONNECTED);
     j.Add(path);
-    j.print();
+    //j.print();
 
-
+    ShowConsoleCursor(false);
 
     //std::cout << "Path type after one step is " << pathTypeString(pathType) << std::endl;
 
     findAllRoutes();
 
 
-    std::cout << "\nPress any key to exit!!!" << std::endl;
+    //std::cout << "\nPress any key to exit!!!" << std::endl;
     std::cin.ignore();
 }
 
@@ -131,17 +159,44 @@ WayOrWall moveOneStep(Step srtStep, Maze& maze, std::vector<Direction>& dirs)
 
 void explorePath(Path &path, Step &step, Maze& m, Junction &junc, std::vector<Direction>& dirs)
 {
-    
+    static int cnt = 0;
+
+    int curX = step.getPoint().x;
+    int curY = step.getPoint().y;
+    int preX = curX;
+    int preY = curY;
 
     WayOrWall result;
     while (true)
     {
+        Sleep(400);
+        
+        // Erase previous position
+        gotoxy(preX, preY);
+        std::cout << ' ';
+
+        // copy current position to previous position
+        preX = curX;
+        preY = curY;
+
+        // Draw previous position
+        gotoxy(preX, preY);
+        std::cout << std::string(1, '+');
+
         result = moveOneStep(step, m, dirs);
-        std::cout << "Current step is " << step.str() << std::endl;
+
+
+        /*gotoxy(step.getPoint().x, 10 + cnt + step.getPoint().y);
+        std::cout << cnt++;*/
+        //std::cout << "Current step is " << step.str() << std::endl;
         if (result == WayOrWall::WAY)
         {
             // update the step with the current direction
             step.updateDirection(dirs[0]);
+            curX = step.getPoint().x;
+            curY = step.getPoint().y;
+            gotoxy(curX, curY);
+            std::cout << std::string(1, RIGHT_ARROW_SYM);
 
             // add step to the path
             path.addStep(step);
@@ -158,7 +213,7 @@ void explorePath(Path &path, Step &step, Maze& m, Junction &junc, std::vector<Di
             // add step to the path
             path.addStep(step);
             path.setType(PathType::TERMINATED);
-            std::cout << "Path terminated at " << step.str() << std::endl;
+            //std::cout << "Path terminated at " << step.str() << std::endl;
             break;
         }
         else if (result == WayOrWall::JUNCTION)
@@ -175,7 +230,25 @@ void explorePath(Path &path, Step &step, Maze& m, Junction &junc, std::vector<Di
             // add step to the path
             path.addStep(step);
             path.setType(PathType::EXIT);
-            std::cout << "Path exited at " << step.str() << " towards " << dirString(dirs[0]) << " direction." << std::endl;
+
+            // Erase previous position
+            gotoxy(preX, preY);
+            std::cout << ' ';
+
+            // Erase X
+            step = step.getNextStep(dirs[0]);
+            curX = step.getPoint().x;
+            curY = step.getPoint().y;
+            gotoxy(curX, curY);
+            std::cout << std::string(1, ' ');
+
+            // Robot outside the maze
+            step = step.getNextStep(dirs[0]);
+            curX = step.getPoint().x;
+            curY = step.getPoint().y;
+            gotoxy(curX, curY);
+            std::cout << std::string(1, 'ê');
+            //std::cout << "Path exited at " << step.str() << " towards " << dirString(dirs[0]) << " direction." << std::endl;
             break;
         }
     }
@@ -187,9 +260,10 @@ void findAllRoutes()
     std::vector<Route> routes;
 
     // Create initial path
-    Maze m("Maze_5_7.txt");
-    std::cout << "is maze valid " << m.isMazeValid() << std::endl;
-    std::cout << "Robot is starting at ";
+   // Maze m("Maze_5_7.txt");
+   Maze m("Maze_9_12.txt");
+    //std::cout << "is maze valid " << m.isMazeValid() << std::endl;
+    //std::cout << "Robot is starting at ";
     //m.getStart().print();
 
     // Start with a route, 
@@ -229,14 +303,14 @@ void exploreRoute(Step step, Maze& m, Route routeCur, std::vector<Route>& routes
         }
         else if (path.getType() == PathType::EXIT)
         {
-            std::cout << "Exit reached at " << step.str() << std::endl;
+            //std::cout << "Exit reached at " << step.str() << std::endl;
             routeCur.AddPath(path);
             routes.push_back(routeCur);
             return;
         }
         else if (path.getType() == PathType::CONNECTED)
         {
-            std::cout << "Junction has reached at " << step.str() << std::endl;
+            //std::cout << "Junction has reached at " << step.str() << std::endl;
             // complte the path with junction
             routeCur.AddPath(path);
 
